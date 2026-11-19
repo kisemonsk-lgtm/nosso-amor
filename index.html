@@ -1328,6 +1328,21 @@
     return d;
   }
 
+  const NUVEM = "https://tinyurl.com/api-create.php?url=";
+
+  // gera o link curto de verdade (encurtador) com todas as informações dentro
+  async function gerarLinkCurtoReal(){
+    const pacote = base64url(JSON.stringify(dadosParaLink(true)));
+    const longo = location.origin + location.pathname + "#c=" + pacote;
+    try{
+      const r = await fetch(NUVEM + encodeURIComponent(longo));
+      const txt = (await r.text()).trim();
+      if (/^https?:\/\//i.test(txt) && txt.length < 60) return txt;
+    }catch(e){}
+    // se o encurtador falhar, devolve o curto "manual" (#a=)
+    return location.origin + location.pathname + "#a=" + pacote;
+  }
+
   function gerarLinkCompartilhar(curto){
     const campo = document.getElementById("iLink");
     if (!campo) return "";
@@ -1350,9 +1365,19 @@
   // lê o pacote vindo do link (#c=...)
   function lerDadosDoLink(){
     const h = location.hash || "";
-    if (!h.startsWith("#c=")) return false;
+    let bruto = "";
+    // formatos aceitos: #c=..., #d=... e o curto #a=...
+    if (h.startsWith("#c=") || h.startsWith("#d=") || h.startsWith("#a=")){
+      bruto = h.slice(3);
+    } else {
+      // #a=...&c=... (link curto + dados completos) ou #c=...&a=...
+      const achou = h.match(/[#&](?:c|d|a)=([^&]+)/);
+      if (!achou) return false;
+      bruto = achou[1];
+    }
+    bruto = bruto.replace(/%2B/gi, "-").replace(/%2F/gi, "_").replace(/=+$/, "");
+    if (!bruto) return false;
     try{
-      const bruto = h.slice(3);
       if (bruto.length > 900000) return false;
       const obj = JSON.parse(deBase64url(bruto));
       if (!obj || typeof obj !== "object") return false;
@@ -1443,7 +1468,11 @@
 
   // botão principal: compartilhar link
   async function compartilharLink(){
-    const url = gerarLinkCompartilhar();
+    const btn = document.getElementById("btnCompartilharLink");
+    const antigo = btn ? btn.textContent : "";
+    if (btn){ btn.disabled = true; btn.textContent = "Gerando link..."; }
+    const url = await gerarLinkCurtoReal();
+    if (btn){ btn.disabled = false; btn.textContent = antigo; }
     const texto = (cfg.linkTitulo || "Uma surpresa pra você ❤️") + "\n" + url;
     // 1) compartilhamento nativo do celular (WhatsApp, Instagram, etc.)
     if (navigator.share){
@@ -1488,13 +1517,18 @@
   const btnLinkCurto = document.getElementById("btnLinkCurto");
   if (btnLinkCurto){
     btnLinkCurto.addEventListener("click", async () => {
-      const url = gerarLinkCompartilhar(true);
+      btnLinkCurto.disabled = true;
+      btnLinkCurto.textContent = "Gerando link curto...";
+      const url = await gerarLinkCurtoReal();
+      btnLinkCurto.disabled = false;
+      btnLinkCurto.textContent = "✂️ Gerar link curto (sem as fotos)";
+      const campo = document.getElementById("iLink");
+      if (campo) campo.value = url;
       try{
         await navigator.clipboard.writeText(url);
         avisar("Link curto copiado ✓ (" + url.length + " caracteres)");
       }catch(e){
-        const campo = document.getElementById("iLink");
-        campo.focus(); campo.select();
+        if (campo){ campo.focus(); campo.select(); }
         try{ document.execCommand("copy"); avisar("Link curto copiado ✓"); }
         catch(_){ avisar("Copie o link do campo acima", true); }
       }
