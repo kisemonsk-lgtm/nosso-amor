@@ -2,7 +2,16 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16040c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nosso Amor">
+<meta name="description" content="Contando cada segundo do nosso amor ❤️">
+<link rel="icon" href="icone-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Nosso Amor ❤️</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,6 +31,8 @@
   html,body{height:100%}
   body{
     margin:0;
+    -webkit-text-size-adjust:100%;
+    -webkit-tap-highlight-color:transparent;
     font-family:"Poppins",system-ui,-apple-system,"Segoe UI",sans-serif;
     color:var(--texto);
     background:
@@ -65,7 +76,7 @@
     z-index:50;
     display:grid;
     place-items:center;
-    padding:24px;
+    padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
     text-align:center;
     background:
       radial-gradient(900px 600px at 50% 40%, rgba(255,77,128,.16), transparent 70%),
@@ -106,6 +117,7 @@
   }
   .btn-entrar{
     appearance:none;
+    touch-action:manipulation;
     border:0;
     cursor:pointer;
     font-family:inherit;
@@ -141,7 +153,7 @@
     z-index:2;
     max-width:920px;
     margin:0 auto;
-    padding:clamp(24px,5vw,54px) 18px 70px;
+    padding:calc(clamp(24px,5vw,54px) + env(safe-area-inset-top)) 18px calc(70px + env(safe-area-inset-bottom));
     opacity:0;
     transform:translateY(18px);
     transition:opacity .9s ease .25s, transform .9s ease .25s;
@@ -338,6 +350,9 @@
     width:min(430px,100%);
     height:100%;
     overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:calc(40px + env(safe-area-inset-bottom));
+    overscroll-behavior:contain;
     background:linear-gradient(180deg,#1e0611,#12030a);
     border-left:1px solid var(--borda);
     padding:24px 20px 40px;
@@ -399,6 +414,30 @@
     color:#fff;font-size:17px;cursor:pointer;line-height:1;
   }
   #painel .carta{position:relative}
+
+  /* ---------- CELULAR ---------- */
+  @media(max-width:520px){
+    .bloco{border-radius:15px;padding:11px 4px 9px}
+    .bloco .num{font-size:clamp(22px,7.4vw,32px)}
+    .bloco .rot{font-size:9px;letter-spacing:.1em;margin-top:5px}
+    .grid-contador{gap:7px}
+    .destaque{font-size:12px;line-height:1.65}
+    .musica{padding:11px;border-radius:18px}
+    .mensagem{border-radius:20px}
+    .btn-entrar{padding:15px 34px;font-size:15px;width:min(100%,300px)}
+    .topo h2{font-size:clamp(30px,9vw,44px)}
+    .rodape .btn-suave{flex:1;min-width:130px;text-align:center;padding:12px 14px}
+  }
+  @media(orientation:landscape) and (max-height:520px){
+    #inicio .coracao-grande{font-size:52px}
+    #inicio h1{font-size:34px}
+    #inicio p{margin-bottom:18px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    #chuva span{animation:none;opacity:.5}
+    .coracao-grande,.musica .bolinha{animation:none}
+    .btn-entrar::after{animation:none}
+  }
 
   /* coração de clique */
   .coracao-clique{
@@ -542,7 +581,8 @@
   /* ---------------- chuva de corações ---------------- */
   const chuva = document.getElementById("chuva");
   const EMOJIS = ["❤️","💖","💕","💗","💘","🩷","💞","🤍"];
-  let qtdCoracoes = 34;
+  const CELULAR = matchMedia("(max-width: 520px)").matches || (navigator.maxTouchPoints > 0 && innerWidth < 820);
+  let qtdCoracoes = CELULAR ? 16 : 34;
   let timerChuva = null;
 
   function criarCoracao(){
@@ -568,8 +608,8 @@
     clearInterval(timerChuva);
     timerChuva = setInterval(() => {
       if (document.hidden) return;
-      if (chuva.childElementCount < qtdCoracoes) encherChuva(3);
-    }, 900);
+      if (chuva.childElementCount < qtdCoracoes) encherChuva(CELULAR ? 2 : 3);
+    }, 1100);
   }
   iniciarChuva();
 
@@ -768,6 +808,8 @@
   });
   document.addEventListener("click", (e) => {
     if (e.target.closest("#painel")) return;
+    if (e.target.closest("button, input, textarea")) return;
+    if (e.target.closest("#btnEntrar")) return;
     const c = document.createElement("span");
     c.className = "coracao-clique";
     c.textContent = EMOJIS[Math.floor(Math.random()*EMOJIS.length)];
@@ -787,6 +829,13 @@
   if (cfg.entrou){
     inicio.classList.add("sair");
     app.classList.add("visivel");
+  }
+
+  /* ---------------- app / offline (celular) ---------------- */
+  if ("serviceWorker" in navigator && location.protocol === "https:"){
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
   }
 })();
 </script>
