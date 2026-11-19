@@ -538,6 +538,56 @@
     background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;cursor:pointer;
   }
 
+  /* ---------- COMPARTILHAR ---------- */
+  .btn-suave.destaque-link{
+    background:linear-gradient(135deg,#ff3d70,#ff7fa4);
+    border-color:transparent;
+    color:#fff;
+    font-weight:600;
+    box-shadow:0 10px 26px rgba(255,61,112,.32);
+  }
+  .btn-suave.destaque-link:hover{background:linear-gradient(135deg,#ff5182,#ff8fb0)}
+  .link-caixa{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+  }
+  .link-caixa input{
+    flex:1;
+    font-size:12px !important;
+    color:var(--suave) !important;
+    padding:11px 12px !important;
+  }
+  .link-caixa button{
+    appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:600;
+    color:#fff;border:0;padding:0 16px;border-radius:12px;white-space:nowrap;
+    background:linear-gradient(135deg,#ff3d70,#ff7fa4);
+    box-shadow:0 8px 20px rgba(255,61,112,.3);
+  }
+  .link-caixa button:active{transform:scale(.97)}
+  .compartilhar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .compartilhar button{
+    flex:1;min-width:110px;
+    appearance:none;cursor:pointer;font-family:inherit;font-size:12.5px;
+    color:var(--texto);
+    background:rgba(255,255,255,.06);
+    border:1px solid var(--borda);
+    padding:11px 12px;border-radius:999px;
+    transition:background .2s;
+  }
+  .compartilhar button:hover{background:rgba(255,255,255,.13)}
+  .link-novo{
+    margin-top:10px;
+    font-size:11.5px;
+    line-height:1.6;
+    color:var(--suave);
+    background:rgba(255,77,128,.1);
+    border:1px solid rgba(255,77,128,.3);
+    border-radius:12px;
+    padding:10px 12px;
+  }
+  .link-novo b{color:#fff}
+
   /* aviso flutuante */
   #avisoSalvo{
     position:fixed;
@@ -641,6 +691,7 @@
   </section>
 
   <div class="rodape">
+    <button class="btn-suave" id="btnCompartilharLink">🔗 Compartilhar link</button>
     <button class="btn-suave" id="btnConfigurar">✎ Personalizar</button>
     <button class="btn-suave" id="btnCoracoes">💖 Mais corações</button>
   </div>
@@ -656,8 +707,9 @@
     <p class="desc">Tudo fica salvo neste aparelho (navegador). Nada é enviado para a internet.</p>
 
     <div class="campo">
-      <label for="iNome">Título / nome do casal</label>
-      <input id="iNome" type="text" placeholder="Nosso Amor" maxlength="60">
+      <label for="iNome">Nome do casal (título)</label>
+      <input id="iNome" type="text" placeholder="Ana &amp; João" maxlength="40">
+      <div class="ajuda">Ex.: "Ana &amp; João" — aparece no topo e na tela de abertura.</div>
     </div>
 
     <div class="campo">
@@ -700,6 +752,29 @@
     </div>
 
     <div class="campo">
+      <label>Compartilhar com ela 💌</label>
+      <div class="link-caixa">
+        <input id="iLink" type="text" readonly placeholder="Gerando o link...">
+        <button type="button" id="btnCopiarLink">Copiar</button>
+      </div>
+      <div class="compartilhar">
+        <button type="button" id="btnCompartilhar">📲 Compartilhar</button>
+        <button type="button" id="btnWhats">WhatsApp</button>
+      </div>
+      <div class="link-novo">
+        <b>Para ela ver tudo o que você fez</b> (fotos, mensagem, nomes, data e música), toque em <b>Copiar</b> e envie esse link para ela. O link já vai com todas as suas informações.
+      </div>
+      <div class="ajuda" style="margin-top:10px">Depois de mudar algo (foto, data, mensagem), gere e envie o link de novo.</div>
+    </div>
+
+    <div class="campo">
+      <label for="iLinkTitulo">Frase da tela de abertura (para ela)</label>
+      <input id="iLinkTitulo" type="text" maxlength="60" placeholder="Uma surpresa pra você ❤️">
+      <input id="iLinkTexto" type="text" maxlength="90" placeholder="Toque no botão abaixo para abrir o nosso cantinho"
+             style="margin-top:8px">
+    </div>
+
+    <div class="campo">
       <label for="iSpotify">Link da música do Spotify</label>
       <input id="iSpotify" type="text" placeholder="https://open.spotify.com/track/...">
       <div class="ajuda">Abra a música no Spotify → ⋯ → Compartilhar → Copiar link. Também aceita link de álbum, playlist, podcast ou o código (ex.: 4uLU6hMCjMI75M1A2tKUQC).</div>
@@ -722,6 +797,7 @@
 
   const PADRAO = {
     nome: "Nosso Amor",
+    casal: "Nosso Amor",
     desde: "2024-02-14T20:00",
     mensagem: "Cada segundo ao seu lado é o meu lugar favorito no mundo.\nObrigado por existir e por escolher caminhar comigo. ❤️",
     assinatura: "Com amor, para sempre seu",
@@ -730,10 +806,13 @@
     foto2: "",
     nome1: "",
     nome2: "",
+    linkTitulo: "Uma surpresa pra você ❤️",
+    linkTexto: "Toque no botão abaixo para abrir o nosso cantinho",
     entrou: false
   };
 
   let cfg = carregar();
+  let veioDoLink = false;
 
   /* ---------------- armazenamento ---------------- */
   function carregar(){
@@ -925,8 +1004,8 @@
   }
 
   function aplicarTextos(){
-    el.titulo.textContent = cfg.nome || PADRAO.nome;
-    document.title = (cfg.nome || PADRAO.nome) + " ❤️";
+    el.titulo.textContent = cfg.casal || cfg.nome || PADRAO.nome;
+    document.title = (cfg.casal || cfg.nome || PADRAO.nome) + " ❤️";
     const d = dataInicio();
     el.desdeRotulo.textContent = "Desde " + d.getDate() + " de " + MESES[d.getMonth()] + " de " + d.getFullYear();
     const r = calcular();
@@ -1069,7 +1148,7 @@
     inicio.classList.add("sair");
     app.classList.add("visivel");
     cfg.entrou = true;
-    const okEntrar = salvar();
+    const okEntrar = veioDoLink ? true : salvar();
     encherChuva(14);
     if (!okEntrar && !armazenamentoOk){
       setTimeout(() => avisar("Este navegador está bloqueando o salvamento (modo anônimo?). Suas mudanças podem se perder ao atualizar.", true), 900);
@@ -1096,11 +1175,14 @@
   }
 
   function abrirPainel(){
-    iNome.value = cfg.nome || "";
+    iNome.value = cfg.casal || "";
     iData.value = cfg.desde || "";
     iMsg.value = cfg.mensagem || "";
     iAss.value = cfg.assinatura || "";
     iSpotify.value = cfg.spotify || "";
+    document.getElementById("iLinkTitulo").value = cfg.linkTitulo || "";
+    document.getElementById("iLinkTexto").value = cfg.linkTexto || "";
+    gerarLinkCompartilhar();
     sincronizarMinis();
     pintarFotos();
     painel.classList.add("aberto");
@@ -1117,13 +1199,16 @@
       avisar("A data não está válida. Confira o dia, o mês e o ano.", true);
       return;
     }
-    cfg.nome = iNome.value.trim() || PADRAO.nome;
+    cfg.casal = iNome.value.trim() || "";
+    cfg.nome = cfg.casal || PADRAO.nome;
     cfg.desde = iData.value || cfg.desde || PADRAO.desde;
     cfg.mensagem = iMsg.value;
     cfg.assinatura = iAss.value.trim();
     cfg.spotify = iSpotify.value.trim();
     cfg.nome1 = document.getElementById("iNome1").value.trim();
     cfg.nome2 = document.getElementById("iNome2").value.trim();
+    cfg.linkTitulo = document.getElementById("iLinkTitulo").value.trim() || PADRAO.linkTitulo;
+    cfg.linkTexto = document.getElementById("iLinkTexto").value.trim() || PADRAO.linkTexto;
     const ok = salvar();
     pintarFotos();
     aplicarTextos();
@@ -1152,6 +1237,100 @@
     avisar("Restaurado para o padrão");
   });
 
+  /* ---------------- compartilhar tudo (link com as informações) ---------------- */
+  function base64url(txt){
+    const bytes = new TextEncoder().encode(txt);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function deBase64url(txt){
+    const b64 = txt.replace(/-/g, "+").replace(/_/g, "/");
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  // só o essencial (sem "entrou", que é de cada aparelho)
+  function dadosParaLink(){
+    const d = {
+      n: cfg.nome || PADRAO.nome,
+      c: cfg.casal || "",
+      d: cfg.desde || PADRAO.desde,
+      m: cfg.mensagem || "",
+      a: cfg.assinatura || "",
+      s: cfg.spotify || "",
+      n1: cfg.nome1 || "",
+      n2: cfg.nome2 || "",
+      f1: cfg.foto1 || "",
+      f2: cfg.foto2 || "",
+      t: cfg.linkTitulo || PADRAO.linkTitulo,
+      x: cfg.linkTexto || PADRAO.linkTexto
+    };
+    return d;
+  }
+
+  function gerarLinkCompartilhar(){
+    const campo = document.getElementById("iLink");
+    if (!campo) return "";
+    let url = "";
+    try{
+      const pacote = base64url(JSON.stringify(dadosParaLink()));
+      url = location.origin + location.pathname + "#c=" + pacote;
+      // endereços muito longos podem ser cortados ao compartilhar: usa o encurtador do GitHub
+      if (url.length > 7000 && location.hostname.endsWith("github.io")){
+        // mantém o link direto, mas avisa
+        campo.title = "Link longo (fotos grandes). Se não abrir, gere de novo com fotos menores.";
+      }
+    }catch(e){
+      url = location.href.split("#")[0];
+    }
+    campo.value = url;
+    return url;
+  }
+
+  // lê o pacote vindo do link (#c=...)
+  function lerDadosDoLink(){
+    const h = location.hash || "";
+    if (!h.startsWith("#c=")) return false;
+    try{
+      const bruto = h.slice(3);
+      if (bruto.length > 900000) return false;
+      const obj = JSON.parse(deBase64url(bruto));
+      if (!obj || typeof obj !== "object") return false;
+      cfg = {
+        ...cfg,
+        nome: obj.n || cfg.nome,
+        casal: obj.c || cfg.casal,
+        desde: obj.d || cfg.desde,
+        mensagem: typeof obj.m === "string" ? obj.m : cfg.mensagem,
+        assinatura: typeof obj.a === "string" ? obj.a : cfg.assinatura,
+        spotify: obj.s || "",
+        nome1: obj.n1 || "",
+        nome2: obj.n2 || "",
+        foto1: obj.f1 || "",
+        foto2: obj.f2 || "",
+        linkTitulo: obj.t || PADRAO.linkTitulo,
+        linkTexto: obj.x || PADRAO.linkTexto
+      };
+      if (!/^\d{4}-\d{2}-\d{2}/.test(String(cfg.desde)) || isNaN(new Date(cfg.desde).getTime())){
+        cfg.desde = PADRAO.desde;
+      }
+      return true;
+    }catch(e){ return false; }
+  }
+
+  // textos da tela de abertura (quando vier de um link)
+  function aplicarAbertura(){
+    const h1 = document.querySelector("#inicio h1");
+    const p = document.querySelector("#inicio p");
+    if (h1) h1.textContent = cfg.casal || cfg.nome || PADRAO.nome;
+    if (p) p.textContent = cfg.linkTexto || PADRAO.linkTexto;
+    const sub = document.querySelector("#inicio .caixa p");
+    if (sub) sub.textContent = cfg.linkTexto || PADRAO.linkTexto;
+  }
+
   /* ---------------- corações extras + clique ---------------- */
   document.getElementById("btnCoracoes").addEventListener("click", () => {
     encherChuva(40);
@@ -1171,15 +1350,98 @@
   });
 
   /* ---------------- início ---------------- */
+  veioDoLink = lerDadosDoLink();
+  if (veioDoLink){
+    // quem recebeu o link vê tudo já preenchido; não sobrescreve o que está salvo no aparelho
+    cfg.entrou = false;
+    const espelho = JSON.stringify(cfg);
+    window.__amorLink = espelho;
+  }
+  aplicarAbertura();
   aplicarTextos();
   pintarFotos();
   pintar();
   setInterval(pintar, 1000);
 
   // se já entrou antes, abre direto
-  if (cfg.entrou){
+  if (cfg.entrou && !veioDoLink){
     inicio.classList.add("sair");
     app.classList.add("visivel");
+  }
+
+  // botão principal: compartilhar link
+  const btnCompartilharLink = document.getElementById("btnCompartilharLink");
+  if (btnCompartilharLink){
+    btnCompartilharLink.addEventListener("click", async () => {
+      const url = gerarLinkCompartilhar();
+      const texto = (cfg.linkTitulo || "Uma surpresa pra você ❤️") + "\n" + url;
+      // 1) compartilhamento nativo do celular (WhatsApp, Instagram, etc.)
+      if (navigator.share){
+        try{
+          await navigator.share({ title: cfg.linkTitulo || "Nosso Amor", text: cfg.linkTexto || "Toque para abrir ❤️", url });
+          avisar("Link enviado ✓");
+          return;
+        }catch(e){
+          if (e && e.name === "AbortError") return; // usuário cancelou
+        }
+      }
+      // 2) copia o link
+      try{
+        await navigator.clipboard.writeText(url);
+        avisar("Link copiado! Cole no WhatsApp 💌");
+        return;
+      }catch(e){}
+      try{
+        const campo = document.getElementById("iLink");
+        if (campo){
+          abrirPainel();
+          campo.focus(); campo.select();
+          document.execCommand("copy");
+          avisar("Link copiado! Cole no WhatsApp 💌");
+          return;
+        }
+      }catch(e){}
+      // 3) WhatsApp direto
+      window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank");
+    });
+  }
+
+  // botões de compartilhar (painel)
+  const btnCopiarLink = document.getElementById("btnCopiarLink");
+  if (btnCopiarLink){
+    btnCopiarLink.addEventListener("click", async () => {
+      const url = gerarLinkCompartilhar();
+      try{
+        await navigator.clipboard.writeText(url);
+        avisar("Link copiado ✓");
+      }catch(e){
+        const campo = document.getElementById("iLink");
+        campo.focus(); campo.select();
+        try{ document.execCommand("copy"); avisar("Link copiado ✓"); }
+        catch(_){ avisar("Selecione e copie o link acima", true); }
+      }
+    });
+  }
+  const btnWhats = document.getElementById("btnWhats");
+  if (btnWhats){
+    btnWhats.addEventListener("click", () => {
+      const url = gerarLinkCompartilhar();
+      const txt = "Oi! Fiz um cantinho pra gente ❤️ " + url;
+      window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank");
+    });
+  }
+  const btnCompartilhar = document.getElementById("btnCompartilhar");
+  if (btnCompartilhar){
+    btnCompartilhar.addEventListener("click", async () => {
+      const url = gerarLinkCompartilhar();
+      if (navigator.share){
+        try{
+          await navigator.share({ title: cfg.linkTitulo || "Nosso Amor", text: cfg.linkTexto || "", url });
+        }catch(e){}
+      } else {
+        window.open("https://wa.me/?text=" + encodeURIComponent("Oi! Fiz um cantinho pra gente ❤️ " + url), "_blank");
+      }
+    });
   }
 
   /* ---------------- app / offline (celular) ---------------- */
