@@ -439,6 +439,105 @@
     .btn-entrar::after{animation:none}
   }
 
+  /* ---------- FOTOS DO CASAL ---------- */
+  .fotos{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:clamp(10px,3vw,22px);
+    margin:clamp(24px,5vw,36px) 0 0;
+  }
+  .foto{
+    position:relative;
+    width:clamp(112px,31vw,168px);
+    aspect-ratio:1/1;
+    border-radius:50%;
+    overflow:hidden;
+    border:2px solid rgba(255,150,180,.55);
+    background:
+      radial-gradient(120px 120px at 50% 30%, rgba(255,120,160,.28), transparent 70%),
+      rgba(255,255,255,.05);
+    box-shadow:0 14px 40px rgba(0,0,0,.4), 0 0 30px rgba(255,70,120,.25), inset 0 1px 0 rgba(255,255,255,.15);
+    display:grid;
+    place-items:center;
+    flex:0 0 auto;
+  }
+  .foto img{width:100%;height:100%;object-fit:cover;display:block}
+  .foto .vazio{
+    font-size:clamp(26px,8vw,38px);
+    opacity:.55;
+    filter:grayscale(.15);
+  }
+  .foto::after{
+    content:"";
+    position:absolute;inset:0;
+    border-radius:50%;
+    box-shadow:inset 0 0 30px rgba(120,10,40,.45);
+    pointer-events:none;
+  }
+  .foto .trocar{
+    position:absolute;
+    bottom:6px;left:50%;transform:translateX(-50%);
+    font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+    background:rgba(10,2,6,.72);
+    color:#fff;
+    padding:4px 10px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.22);
+    white-space:nowrap;
+    opacity:0;
+    transition:opacity .2s;
+    cursor:pointer;
+  }
+  .foto:hover .trocar{opacity:1}
+  @media(hover:none){ .foto .trocar{opacity:1} }
+  .foto .remover{
+    position:absolute;top:4px;right:4px;
+    width:24px;height:24px;border-radius:50%;
+    border:1px solid rgba(255,255,255,.25);
+    background:rgba(10,2,6,.7);
+    color:#fff;font-size:12px;line-height:1;
+    cursor:pointer;display:grid;place-items:center;
+  }
+  .coracao-meio{
+    font-size:clamp(18px,5vw,26px);
+    animation:bater 1.8s ease-in-out infinite;
+    filter:drop-shadow(0 0 12px rgba(255,60,110,.7));
+    flex:0 0 auto;
+  }
+  .foto-legenda{
+    display:flex;justify-content:center;gap:clamp(10px,3vw,22px);
+    margin-top:10px;
+  }
+  .foto-legenda span{
+    width:clamp(112px,31vw,168px);
+    text-align:center;
+    font-size:11.5px;
+    color:var(--suave);
+    letter-spacing:.06em;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+
+  /* miniaturas no painel */
+  .mini-fotos{display:flex;gap:12px;margin-top:4px}
+  .mini{
+    flex:1;position:relative;
+    border-radius:14px;
+    border:1px dashed rgba(255,255,255,.22);
+    background:rgba(255,255,255,.04);
+    aspect-ratio:1/1;
+    display:grid;place-items:center;
+    overflow:hidden;cursor:pointer;
+    transition:border-color .2s, background .2s;
+  }
+  .mini:hover{border-color:rgba(255,120,160,.6);background:rgba(255,255,255,.08)}
+  .mini img{width:100%;height:100%;object-fit:cover}
+  .mini .mais{font-size:22px;color:var(--suave);line-height:1}
+  .mini .txt{position:absolute;bottom:5px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);background:rgba(0,0,0,.45);padding:2px 7px;border-radius:999px}
+  .mini .x{
+    position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;
+    background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;cursor:pointer;
+  }
+
   /* coração de clique */
   .coracao-clique{
     position:fixed;
@@ -484,6 +583,27 @@
     <div class="bloco"><span class="num" id="vMinutos">0</span><span class="rot">Minutos</span></div>
     <div class="bloco"><span class="num" id="vSegundos">0</span><span class="rot">Segundos</span></div>
   </section>
+
+  <section class="fotos" id="fotos" hidden>
+    <div class="foto" id="foto1" title="Nossa foto">
+      <img id="img1" alt="Foto dela" hidden>
+      <span class="vazio" id="vazio1">📷</span>
+      <button class="trocar" id="trocar1" type="button">Trocar foto</button>
+      <button class="remover" id="remover1" type="button" aria-label="Remover foto" hidden>✕</button>
+    </div>
+    <div class="coracao-meio">❤️</div>
+    <div class="foto" id="foto2" title="Nossa foto">
+      <img id="img2" alt="Minha foto" hidden>
+      <span class="vazio" id="vazio2">📷</span>
+      <button class="trocar" id="trocar2" type="button">Trocar foto</button>
+      <button class="remover" id="remover2" type="button" aria-label="Remover foto" hidden>✕</button>
+    </div>
+  </section>
+  <div class="foto-legenda" id="fotoLegenda" hidden>
+    <span id="leg1"></span><span style="width:clamp(18px,5vw,26px)"></span><span id="leg2"></span>
+  </div>
+  <input type="file" id="arquivo1" accept="image/*" hidden>
+  <input type="file" id="arquivo2" accept="image/*" hidden>
 
   <p class="destaque" id="destaque"></p>
 
@@ -532,6 +652,29 @@
     </div>
 
     <div class="campo">
+      <label>Fotos do casal</label>
+      <div class="mini-fotos">
+        <div class="mini" id="mini1" title="Foto 1">
+          <img id="miniImg1" alt="" hidden>
+          <span class="mais" id="miniMais1">+</span>
+          <span class="txt">Foto 1</span>
+          <button class="x" id="miniX1" type="button" aria-label="Remover" hidden>✕</button>
+        </div>
+        <div class="mini" id="mini2" title="Foto 2">
+          <img id="miniImg2" alt="" hidden>
+          <span class="mais" id="miniMais2">+</span>
+          <span class="txt">Foto 2</span>
+          <button class="x" id="miniX2" type="button" aria-label="Remover" hidden>✕</button>
+        </div>
+      </div>
+      <div class="ajuda">Toque num quadrado para escolher a foto da galeria (as duas viram um par com um coração no meio). A imagem é reduzida e salva neste aparelho.</div>
+      <div class="mini-fotos" style="margin-top:10px;gap:8px">
+        <input id="iNome1" type="text" maxlength="18" placeholder="Nome dela" style="flex:1;font-size:13px;color:#fff;background:rgba(255,255,255,.06);border:1px solid var(--borda);border-radius:10px;padding:9px 11px;font-family:inherit;outline:none">
+        <input id="iNome2" type="text" maxlength="18" placeholder="Seu nome" style="flex:1;font-size:13px;color:#fff;background:rgba(255,255,255,.06);border:1px solid var(--borda);border-radius:10px;padding:9px 11px;font-family:inherit;outline:none">
+      </div>
+    </div>
+
+    <div class="campo">
       <label for="iSpotify">Link da música do Spotify</label>
       <input id="iSpotify" type="text" placeholder="https://open.spotify.com/track/...">
       <div class="ajuda">Abra a música no Spotify → ⋯ → Compartilhar → Copiar link. Também aceita link de álbum, playlist, podcast ou o código (ex.: 4uLU6hMCjMI75M1A2tKUQC).</div>
@@ -557,7 +700,11 @@
     desde: "2024-02-14T20:00",
     mensagem: "Cada segundo ao seu lado é o meu lugar favorito no mundo.\nObrigado por existir e por escolher caminhar comigo. ❤️",
     assinatura: "Com amor, para sempre seu",
-    spotify: "",
+    spotify: "3EL9IRDqB9GRf8JSacc35v",
+    foto1: "",
+    foto2: "",
+    nome1: "",
+    nome2: "",
     entrou: false
   };
 
@@ -575,7 +722,7 @@
     }
   }
   function salvar(){
-    try{ localStorage.setItem(CHAVE, JSON.stringify(cfg)); }catch(e){}
+    try{ localStorage.setItem(CHAVE, JSON.stringify(cfg)); return true; }catch(e){ return false; }
   }
 
   /* ---------------- chuva de corações ---------------- */
@@ -743,6 +890,122 @@
     montarPlayer();
   }
 
+  /* ---------------- fotos ---------------- */
+  const fotosEl = document.getElementById("fotos");
+  const fotoLegenda = document.getElementById("fotoLegenda");
+
+  function pintarFotos(){
+    const pares = [
+      { n:1, src:cfg.foto1, nome:cfg.nome1, alt:"Foto 1" },
+      { n:2, src:cfg.foto2, nome:cfg.nome2, alt:"Foto 2" }
+    ];
+    let alguma = false;
+    for (const p of pares){
+      const img = document.getElementById("img" + p.n);
+      const vazio = document.getElementById("vazio" + p.n);
+      const rem = document.getElementById("remover" + p.n);
+      const leg = document.getElementById("leg" + p.n);
+      const mImg = document.getElementById("miniImg" + p.n);
+      const mMais = document.getElementById("miniMais" + p.n);
+      const mX = document.getElementById("miniX" + p.n);
+
+      if (p.src){
+        img.src = p.src; img.hidden = false; vazio.hidden = true; rem.hidden = false;
+        mImg.src = p.src; mImg.hidden = false; mMais.hidden = true; mX.hidden = false;
+        alguma = true;
+      } else {
+        img.removeAttribute("src"); img.hidden = true; vazio.hidden = false; rem.hidden = true;
+        mImg.removeAttribute("src"); mImg.hidden = true; mMais.hidden = false; mX.hidden = true;
+      }
+      leg.textContent = p.nome || "";
+    }
+    fotosEl.hidden = !alguma;
+    const temNome = !!(cfg.nome1 || cfg.nome2);
+    fotoLegenda.hidden = !temNome;
+  }
+
+  // Reduz a imagem antes de salvar (economiza espaço no aparelho)
+  function reduzirImagem(arquivo, lado){
+    return new Promise((resolve, reject) => {
+      const leitor = new FileReader();
+      leitor.onerror = () => reject(new Error("Não foi possível ler a imagem"));
+      leitor.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error("Formato de imagem não suportado"));
+        img.onload = () => {
+          const maior = Math.max(img.width, img.height) || 1;
+          const escala = Math.min(1, lado / maior);
+          const w = Math.max(1, Math.round(img.width * escala));
+          const h = Math.max(1, Math.round(img.height * escala));
+          const cv = document.createElement("canvas");
+          cv.width = w; cv.height = h;
+          const ctx = cv.getContext("2d");
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(cv.toDataURL("image/jpeg", 0.85));
+        };
+        img.src = leitor.result;
+      };
+      leitor.readAsDataURL(arquivo);
+    });
+  }
+
+  async function escolherFoto(n, arquivo){
+    if (!arquivo) return;
+    if (!/^image\//.test(arquivo.type)){
+      alert("Escolha um arquivo de imagem (JPG, PNG...).");
+      return;
+    }
+    try{
+      const dataUrl = await reduzirImagem(arquivo, 900);
+      if (n === 1) cfg.foto1 = dataUrl; else cfg.foto2 = dataUrl;
+      if (!salvar()){
+        alert("A foto é grande demais para este navegador. Tente uma imagem menor.");
+        if (n === 1) cfg.foto1 = ""; else cfg.foto2 = "";
+      }
+      pintarFotos();
+      sincronizarMinis();
+    }catch(e){
+      alert("Não foi possível usar essa imagem. Tente outra.");
+    }
+  }
+
+  function sincronizarMinis(){
+    document.getElementById("iNome1").value = cfg.nome1 || "";
+    document.getElementById("iNome2").value = cfg.nome2 || "";
+  }
+
+  // abrir seletor ao clicar na foto (na tela principal) ou na miniatura (no painel)
+  [1,2].forEach((n) => {
+    const abrir = (e) => {
+      if (e) e.stopPropagation();
+      document.getElementById("arquivo" + n).click();
+    };
+    document.getElementById("foto" + n).addEventListener("click", (e) => {
+      if (e.target.closest(".remover")) return;
+      abrir(e);
+    });
+    document.getElementById("mini" + n).addEventListener("click", (e) => {
+      if (e.target.closest(".x")) return;
+      abrir(e);
+    });
+    document.getElementById("arquivo" + n).addEventListener("change", (e) => {
+      const arq = e.target.files && e.target.files[0];
+      escolherFoto(n, arq);
+      e.target.value = "";
+    });
+    document.getElementById("remover" + n).addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (n === 1) cfg.foto1 = ""; else cfg.foto2 = "";
+      salvar(); pintarFotos(); sincronizarMinis();
+    });
+    document.getElementById("miniX" + n).addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (n === 1) cfg.foto1 = ""; else cfg.foto2 = "";
+      salvar(); pintarFotos(); sincronizarMinis();
+    });
+  });
+
   /* ---------------- tela inicial ---------------- */
   const inicio = document.getElementById("inicio");
   const app = document.getElementById("app");
@@ -771,6 +1034,8 @@
     iMsg.value = cfg.mensagem || "";
     iAss.value = cfg.assinatura || "";
     iSpotify.value = cfg.spotify || "";
+    sincronizarMinis();
+    pintarFotos();
     painel.classList.add("aberto");
   }
   function fecharPainel(){ painel.classList.remove("aberto"); }
@@ -786,7 +1051,10 @@
     cfg.mensagem = iMsg.value;
     cfg.assinatura = iAss.value.trim();
     cfg.spotify = iSpotify.value.trim();
+    cfg.nome1 = document.getElementById("iNome1").value.trim();
+    cfg.nome2 = document.getElementById("iNome2").value.trim();
     salvar();
+    pintarFotos();
     aplicarTextos();
     pintar();
     fecharPainel();
@@ -822,6 +1090,7 @@
 
   /* ---------------- início ---------------- */
   aplicarTextos();
+  pintarFotos();
   pintar();
   setInterval(pintar, 1000);
 
