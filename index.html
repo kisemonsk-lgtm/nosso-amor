@@ -1138,10 +1138,10 @@
       return;
     }
     try{
-      const dataUrl = await reduzirImagem(arquivo, 900, 0.85, true);
+      const dataUrl = await reduzirImagem(arquivo, 640, 0.8, true);
       // versão pequena (só para o link compartilhado ficar curto)
       let leve = "";
-      try{ leve = await reduzirImagem(arquivo, 240, 0.62, true); }catch(e){ leve = ""; }
+      try{ leve = await reduzirImagem(arquivo, 200, 0.5, true); }catch(e){ leve = ""; }
       if (n === 1){ cfg.foto1 = dataUrl; cfg.foto1Leve = leve; }
       else { cfg.foto2 = dataUrl; cfg.foto2Leve = leve; }
       if (!salvar()){
