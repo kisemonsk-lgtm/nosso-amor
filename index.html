@@ -598,6 +598,18 @@
     transition:background .2s;
   }
   .compartilhar button:hover{background:rgba(255,255,255,.13)}
+  .link-curto{
+    width:100%;
+    margin-top:8px;
+    appearance:none;cursor:pointer;font-family:inherit;
+    font-size:12.5px;font-weight:600;color:#fff;
+    background:rgba(255,255,255,.1);
+    border:1px dashed rgba(255,255,255,.3);
+    padding:11px 14px;border-radius:12px;
+    transition:background .2s, border-color .2s;
+  }
+  .link-curto:hover{background:rgba(255,255,255,.16);border-color:rgba(255,160,190,.6)}
+  .link-curto:active{transform:scale(.99)}
   .link-novo{
     margin-top:10px;
     font-size:11.5px;
@@ -782,6 +794,7 @@
         <input id="iLink" type="text" readonly placeholder="Gerando o link...">
         <button type="button" id="btnCopiarLink">Copiar</button>
       </div>
+      <button type="button" class="link-curto" id="btnLinkCurto">✂️ Gerar link curto (sem as fotos)</button>
       <div class="compartilhar">
         <button type="button" id="btnCompartilhar">📲 Compartilhar</button>
         <button type="button" id="btnWhats">WhatsApp</button>
@@ -829,6 +842,8 @@
     spotify: "3EL9IRDqB9GRf8JSacc35v",
     foto1: "",
     foto2: "",
+    foto1Leve: "",
+    foto2Leve: "",
     nome1: "",
     nome2: "",
     linkTitulo: "Uma surpresa pra você ❤️",
@@ -1080,7 +1095,7 @@
   }
 
   // Reduz a imagem antes de salvar (economiza espaço no aparelho)
-  function reduzirImagem(arquivo, lado){
+  function reduzirImagem(arquivo, lado, qualidade, quadrado){
     return new Promise((resolve, reject) => {
       const leitor = new FileReader();
       leitor.onerror = () => reject(new Error("Não foi possível ler a imagem"));
@@ -1088,16 +1103,27 @@
         const img = new Image();
         img.onerror = () => reject(new Error("Formato de imagem não suportado"));
         img.onload = () => {
-          const maior = Math.max(img.width, img.height) || 1;
-          const escala = Math.min(1, lado / maior);
-          const w = Math.max(1, Math.round(img.width * escala));
-          const h = Math.max(1, Math.round(img.height * escala));
+          const q = typeof qualidade === "number" ? qualidade : 0.85;
+          let w, h, sx = 0, sy = 0, sw = img.width, sh = img.height;
+          if (quadrado){
+            // recorte quadrado no centro (as fotos aparecem em círculo)
+            const ladoMenor = Math.min(img.width, img.height) || 1;
+            sw = sh = ladoMenor;
+            sx = (img.width - ladoMenor) / 2;
+            sy = (img.height - ladoMenor) / 2;
+            w = h = Math.min(lado, ladoMenor);
+          } else {
+            const maior = Math.max(img.width, img.height) || 1;
+            const escala = Math.min(1, lado / maior);
+            w = Math.max(1, Math.round(img.width * escala));
+            h = Math.max(1, Math.round(img.height * escala));
+          }
           const cv = document.createElement("canvas");
           cv.width = w; cv.height = h;
           const ctx = cv.getContext("2d");
           ctx.imageSmoothingQuality = "high";
-          ctx.drawImage(img, 0, 0, w, h);
-          resolve(cv.toDataURL("image/jpeg", 0.85));
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+          resolve(cv.toDataURL("image/jpeg", q));
         };
         img.src = leitor.result;
       };
@@ -1112,11 +1138,15 @@
       return;
     }
     try{
-      const dataUrl = await reduzirImagem(arquivo, 900);
-      if (n === 1) cfg.foto1 = dataUrl; else cfg.foto2 = dataUrl;
+      const dataUrl = await reduzirImagem(arquivo, 900, 0.85, true);
+      // versão pequena (só para o link compartilhado ficar curto)
+      let leve = "";
+      try{ leve = await reduzirImagem(arquivo, 240, 0.62, true); }catch(e){ leve = ""; }
+      if (n === 1){ cfg.foto1 = dataUrl; cfg.foto1Leve = leve; }
+      else { cfg.foto2 = dataUrl; cfg.foto2Leve = leve; }
       if (!salvar()){
         alert("A foto é grande demais para este navegador. Tente uma imagem menor.");
-        if (n === 1) cfg.foto1 = ""; else cfg.foto2 = "";
+        if (n === 1){ cfg.foto1 = ""; cfg.foto1Leve = ""; } else { cfg.foto2 = ""; cfg.foto2Leve = ""; }
       }
       pintarFotos();
       sincronizarMinis();
@@ -1151,12 +1181,12 @@
     });
     document.getElementById("remover" + n).addEventListener("click", (e) => {
       e.stopPropagation();
-      if (n === 1) cfg.foto1 = ""; else cfg.foto2 = "";
+      if (n === 1){ cfg.foto1 = ""; cfg.foto1Leve = ""; } else { cfg.foto2 = ""; cfg.foto2Leve = ""; }
       salvar(); pintarFotos(); sincronizarMinis();
     });
     document.getElementById("miniX" + n).addEventListener("click", (e) => {
       e.stopPropagation();
-      if (n === 1) cfg.foto1 = ""; else cfg.foto2 = "";
+      if (n === 1){ cfg.foto1 = ""; cfg.foto1Leve = ""; } else { cfg.foto2 = ""; cfg.foto2Leve = ""; }
       salvar(); pintarFotos(); sincronizarMinis();
     });
   });
@@ -1280,7 +1310,7 @@
   }
 
   // só o essencial (sem "entrou", que é de cada aparelho)
-  function dadosParaLink(){
+  function dadosParaLink(curto){
     const d = {
       n: cfg.nome || PADRAO.nome,
       c: cfg.casal || "",
@@ -1290,20 +1320,20 @@
       s: cfg.spotify || "",
       n1: cfg.nome1 || "",
       n2: cfg.nome2 || "",
-      f1: cfg.foto1 || "",
-      f2: cfg.foto2 || "",
+      f1: (curto ? (cfg.foto1Leve || cfg.foto1) : cfg.foto1) || "",
+      f2: (curto ? (cfg.foto2Leve || cfg.foto2) : cfg.foto2) || "",
       t: cfg.linkTitulo || PADRAO.linkTitulo,
       x: cfg.linkTexto || PADRAO.linkTexto
     };
     return d;
   }
 
-  function gerarLinkCompartilhar(){
+  function gerarLinkCompartilhar(curto){
     const campo = document.getElementById("iLink");
     if (!campo) return "";
     let url = "";
     try{
-      const pacote = base64url(JSON.stringify(dadosParaLink()));
+      const pacote = base64url(JSON.stringify(dadosParaLink(!!curto)));
       url = location.origin + location.pathname + "#c=" + pacote;
       // endereços muito longos podem ser cortados ao compartilhar: usa o encurtador do GitHub
       if (url.length > 7000 && location.hostname.endsWith("github.io")){
@@ -1452,6 +1482,23 @@
   const btnCompartilharInicio = document.getElementById("btnCompartilharInicio");
   if (btnCompartilharInicio){
     btnCompartilharInicio.addEventListener("click", (e) => { e.stopPropagation(); compartilharLink(); });
+  }
+
+  // gerar link curto (fotos em versão pequena)
+  const btnLinkCurto = document.getElementById("btnLinkCurto");
+  if (btnLinkCurto){
+    btnLinkCurto.addEventListener("click", async () => {
+      const url = gerarLinkCompartilhar(true);
+      try{
+        await navigator.clipboard.writeText(url);
+        avisar("Link curto copiado ✓ (" + url.length + " caracteres)");
+      }catch(e){
+        const campo = document.getElementById("iLink");
+        campo.focus(); campo.select();
+        try{ document.execCommand("copy"); avisar("Link curto copiado ✓"); }
+        catch(_){ avisar("Copie o link do campo acima", true); }
+      }
+    });
   }
 
   // botões de compartilhar (painel)
