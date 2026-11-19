@@ -1141,7 +1141,7 @@
       const dataUrl = await reduzirImagem(arquivo, 640, 0.8, true);
       // versão pequena (só para o link compartilhado ficar curto)
       let leve = "";
-      try{ leve = await reduzirImagem(arquivo, 200, 0.5, true); }catch(e){ leve = ""; }
+      try{ leve = await reduzirImagem(arquivo, 150, 0.4, true); }catch(e){ leve = ""; }
       if (n === 1){ cfg.foto1 = dataUrl; cfg.foto1Leve = leve; }
       else { cfg.foto2 = dataUrl; cfg.foto2Leve = leve; }
       if (!salvar()){
@@ -1332,15 +1332,23 @@
 
   // gera o link curto de verdade (encurtador) com todas as informações dentro
   async function gerarLinkCurtoReal(){
-    const pacote = base64url(JSON.stringify(dadosParaLink(true)));
-    const longo = location.origin + location.pathname + "#c=" + pacote;
-    try{
-      const r = await fetch(NUVEM + encodeURIComponent(longo));
-      const txt = (await r.text()).trim();
-      if (/^https?:\/\//i.test(txt) && txt.length < 60) return txt;
-    }catch(e){}
-    // se o encurtador falhar, devolve o curto "manual" (#a=)
-    return location.origin + location.pathname + "#a=" + pacote;
+    // 1) tenta com as fotos leves; 2) sem as fotos; para caber no encurtador
+    const dados = dadosParaLink(true);
+    const tentativas = [dados, { ...dados, f1:"", f2:"" }];
+    const servicos = [NUVEM, "https://is.gd/create.php?format=simple&url=", "https://v.gd/create.php?format=simple&url="];
+    for (const conjunto of tentativas){
+      const pacote = base64url(JSON.stringify(conjunto));
+      const longo = location.origin + location.pathname + "#c=" + pacote;
+      for (const servico of servicos){
+        try{
+          const r = await fetch(servico + encodeURIComponent(longo));
+          const txt = (await r.text()).trim();
+          if (r.ok && /^https?:\/\//i.test(txt) && txt.length < 60) return txt;
+        }catch(e){}
+      }
+    }
+    // sem encurtador: link do próprio site (o mais curto e sem risco de falhar)
+    return location.origin + location.pathname;
   }
 
   function gerarLinkCompartilhar(curto){
