@@ -622,6 +622,37 @@
   }
   .link-novo b{color:#fff}
 
+  /* janelinha de "não está vendo?" */
+  #ajuda{
+    position:fixed;inset:0;z-index:90;
+    display:grid;place-items:center;
+    background:rgba(8,1,5,.6);
+    backdrop-filter:blur(4px);
+    padding:20px;
+    opacity:0;visibility:hidden;transition:opacity .25s;
+  }
+  #ajuda.aberta{opacity:1;visibility:visible}
+  #ajuda .carta{
+    width:min(400px,100%);
+    background:linear-gradient(180deg,#220714,#12030a);
+    border:1px solid var(--borda);
+    border-radius:20px;
+    padding:22px 20px 18px;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
+    text-align:center;
+  }
+  #ajuda h4{margin:0 0 6px;font-size:17px;color:#fff;font-weight:600}
+  #ajuda p{margin:0 0 16px;font-size:12.5px;line-height:1.65;color:var(--suave)}
+  #ajuda button{
+    width:100%;appearance:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;
+    color:#fff;border:0;padding:14px;border-radius:999px;
+    background:linear-gradient(135deg,#ff3d70,#ff7fa4);
+    box-shadow:0 10px 26px rgba(255,61,112,.35);
+    margin-bottom:8px;
+  }
+  #ajuda button.sec{background:rgba(255,255,255,.08);border:1px solid var(--borda);box-shadow:none;font-weight:400;font-size:13px}
+  #ajuda .mini-aviso{font-size:11px;color:rgba(255,234,242,.45);margin-top:8px;line-height:1.5}
+
   /* aviso flutuante */
   #avisoSalvo{
     position:fixed;
@@ -729,12 +760,23 @@
 
   <div class="rodape">
     <button class="btn-suave" id="btnCoracoes">💖 Mais corações</button>
+    <button class="btn-suave" id="btnAtualizar">↻ Não está aparecendo?</button>
     <button class="btn-suave destaque-link" id="btnCompartilharLink">🔗 Compartilhar</button>
   </div>
 </main>
 
 <!-- PAINEL -->
 <div id="avisoSalvo" role="status" aria-live="polite"></div>
+
+<div id="ajuda" role="dialog" aria-modal="true" aria-label="Atualizar">
+  <div class="carta">
+    <h4>Não está aparecendo? 🤔</h4>
+    <p>Este aparelho guardou uma cópia antiga do site. Toque abaixo para atualizar e ver as fotos e os nomes.</p>
+    <button type="button" id="btnForcarAtualizar">Atualizar agora</button>
+    <button type="button" class="sec" id="btnFecharAjuda">Depois</button>
+    <div class="mini-aviso" id="miniAvisoAjuda"></div>
+  </div>
+</div>
 
 <div id="painel" role="dialog" aria-modal="true" aria-label="Ajustes">
   <div class="carta">
@@ -832,6 +874,8 @@
 
   const CHAVE = "nosso-amor-config-v1";
 
+  const VERSAO = 4;   // sobe quando o conteúdo publicado muda
+
   const PADRAO = {
     nome: "Nosso Amor",
     casal: "Pablo & Elane",
@@ -861,7 +905,9 @@
       if (bruto) dados = JSON.parse(bruto);
     }catch(e){ dados = null; }
     if (!dados || typeof dados !== "object") dados = {};
-    const cfgFinal = { ...PADRAO, ...dados };
+    // conteúdo antigo salvo no aparelho não pode esconder o que está publicado no site
+    if (Number(dados.v || 0) < VERSAO) return { ...PADRAO, v: VERSAO };
+    const cfgFinal = { ...PADRAO, ...dados, v: VERSAO };
     // só aceita data válida; senão volta ao padrão
     if (!/^\d{4}-\d{2}-\d{2}/.test(String(cfgFinal.desde || "")) ||
         isNaN(new Date(cfgFinal.desde).getTime())){
@@ -883,6 +929,7 @@
   function salvar(){
     // quem abriu pelo link não grava por cima do que já existe no aparelho
     if (veioDoLink) return true;
+    cfg.v = VERSAO;
     const dados = JSON.stringify(cfg);
     try{
       localStorage.setItem(CHAVE, dados);
@@ -1515,6 +1562,16 @@
     const espelho = JSON.stringify(cfg);
     window.__amorLink = espelho;
   }
+  // conferência: o conteúdo publicado (fotos/nomes) deveria estar na tela
+  if (!veioDoLink){
+    const semFotos = !cfg.foto1 && !cfg.foto2;
+    const semNomes = !cfg.nome1 && !cfg.nome2;
+    const nomeErrado = (cfg.casal || "") !== PADRAO.casal;
+    if (semFotos && semNomes && nomeErrado){
+      setTimeout(() => abrirAjuda("Parece que este aparelho está com uma versão antiga salva."), 1200);
+    }
+  }
+
   aplicarAbertura();
   aplicarTextos();
   pintarFotos();
@@ -1634,10 +1691,65 @@
     });
   }
 
+  /* ---------------- atualizar de verdade (limpar cópia antiga) ---------------- */
+  async function limparCache(){
+    try{
+      if ("caches" in window){
+        const ks = await caches.keys();
+        await Promise.all(ks.map(k => caches.delete(k)));
+      }
+    }catch(e){}
+    try{
+      if (navigator.serviceWorker){
+        const rs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(rs.map(r => r.unregister()));
+      }
+    }catch(e){}
+    try{
+      localStorage.removeItem("amor-versao-vista");
+      sessionStorage.clear();
+    }catch(e){}
+  }
+
+  const ajuda = document.getElementById("ajuda");
+  function abrirAjuda(txt){
+    const mini = document.getElementById("miniAvisoAjuda");
+    if (mini) mini.textContent = txt || "Se você chegou por um link antigo, peça o link novo.";
+    ajuda.classList.add("aberta");
+  }
+  document.getElementById("btnFecharAjuda").addEventListener("click", () => ajuda.classList.remove("aberta"));
+  document.getElementById("btnForcarAtualizar").addEventListener("click", async () => {
+    const btn = document.getElementById("btnForcarAtualizar");
+    btn.disabled = true; btn.textContent = "Atualizando...";
+    await limparCache();
+    location.replace(location.origin + location.pathname + "?v=" + Date.now());
+  });
+
+  // botão "não está aparecendo?" no rodapé
+  const btnAtualizar = document.getElementById("btnAtualizar");
+  if (btnAtualizar) btnAtualizar.addEventListener("click", () => abrirAjuda());
+
+  // força pegar a versão nova quando a página foi servida do cache
+  try{
+    const marca = "amor-versao-vista";
+    if (localStorage.getItem(marca) !== String(VERSAO)){
+      localStorage.setItem(marca, String(VERSAO));
+      if ("caches" in window){
+        caches.keys().then(ks => ks.forEach(k => caches.delete(k))).catch(() => {});
+      }
+      if (navigator.serviceWorker){
+        navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.update())).catch(() => {});
+      }
+    }
+  }catch(e){}
+
   /* ---------------- app / offline (celular) ---------------- */
   if ("serviceWorker" in navigator && location.protocol === "https:"){
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
+      // registra de novo e já pede a versão nova
+      navigator.serviceWorker.register("sw.js").then((reg) => {
+        try{ reg.update(); }catch(e){}
+      }).catch(() => {});
     });
   }
 })();
