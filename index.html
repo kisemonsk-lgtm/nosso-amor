@@ -134,6 +134,17 @@
   }
   .btn-entrar:hover{transform:translateY(-2px) scale(1.03); box-shadow:0 16px 44px rgba(255,61,112,.55), inset 0 1px 0 rgba(255,255,255,.35)}
   .btn-entrar:active{transform:scale(.98)}
+  .abertura-acoes{margin-top:16px;display:flex;justify-content:center}
+  .btn-abertura{
+    appearance:none;cursor:pointer;font-family:inherit;
+    font-size:12.5px;color:var(--texto);
+    background:rgba(255,255,255,.07);
+    border:1px solid var(--border, rgba(255,255,255,.16));
+    padding:10px 18px;border-radius:999px;
+    transition:background .2s;
+  }
+  .btn-abertura:hover{background:rgba(255,255,255,.14)}
+
   .btn-entrar::after{
     content:"";
     position:absolute;
@@ -436,7 +447,18 @@
   @media(prefers-reduced-motion:reduce){
     #chuva span{animation:none;opacity:.5}
     .coracao-grande,.musica .bolinha{animation:none}
-    .btn-entrar::after{animation:none}
+    .abertura-acoes{margin-top:16px;display:flex;justify-content:center}
+  .btn-abertura{
+    appearance:none;cursor:pointer;font-family:inherit;
+    font-size:12.5px;color:var(--texto);
+    background:rgba(255,255,255,.07);
+    border:1px solid var(--border, rgba(255,255,255,.16));
+    padding:10px 18px;border-radius:999px;
+    transition:background .2s;
+  }
+  .btn-abertura:hover{background:rgba(255,255,255,.14)}
+
+  .btn-entrar::after{animation:none}
   }
 
   /* ---------- FOTOS DO CASAL ---------- */
@@ -636,6 +658,9 @@
     <h1>Nosso Amor</h1>
     <p>Um cantinho só nosso, contando cada segundo desde o início</p>
     <button class="btn-entrar" id="btnEntrar">Entrar ❤️</button>
+    <div class="abertura-acoes">
+      <button class="btn-abertura" id="btnCompartilharInicio" type="button">🔗 Compartilhar este link</button>
+    </div>
   </div>
 </section>
 
@@ -691,9 +716,9 @@
   </section>
 
   <div class="rodape">
-    <button class="btn-suave" id="btnCompartilharLink">🔗 Compartilhar link</button>
     <button class="btn-suave" id="btnConfigurar">✎ Personalizar</button>
     <button class="btn-suave" id="btnCoracoes">💖 Mais corações</button>
+    <button class="btn-suave destaque-link" id="btnCompartilharLink">🔗 Compartilhar</button>
   </div>
 </main>
 
@@ -1370,40 +1395,46 @@
   }
 
   // botão principal: compartilhar link
-  const btnCompartilharLink = document.getElementById("btnCompartilharLink");
-  if (btnCompartilharLink){
-    btnCompartilharLink.addEventListener("click", async () => {
-      const url = gerarLinkCompartilhar();
-      const texto = (cfg.linkTitulo || "Uma surpresa pra você ❤️") + "\n" + url;
-      // 1) compartilhamento nativo do celular (WhatsApp, Instagram, etc.)
-      if (navigator.share){
-        try{
-          await navigator.share({ title: cfg.linkTitulo || "Nosso Amor", text: cfg.linkTexto || "Toque para abrir ❤️", url });
-          avisar("Link enviado ✓");
-          return;
-        }catch(e){
-          if (e && e.name === "AbortError") return; // usuário cancelou
-        }
-      }
-      // 2) copia o link
+  async function compartilharLink(){
+    const url = gerarLinkCompartilhar();
+    const texto = (cfg.linkTitulo || "Uma surpresa pra você ❤️") + "\n" + url;
+    // 1) compartilhamento nativo do celular (WhatsApp, Instagram, etc.)
+    if (navigator.share){
       try{
-        await navigator.clipboard.writeText(url);
+        await navigator.share({ title: cfg.linkTitulo || "Nosso Amor", text: cfg.linkTexto || "Toque para abrir ❤️", url });
+        avisar("Link enviado ✓");
+        return;
+      }catch(e){
+        if (e && e.name === "AbortError") return; // usuário cancelou
+      }
+    }
+    // 2) copia o link
+    try{
+      await navigator.clipboard.writeText(url);
+      avisar("Link copiado! Cole no WhatsApp 💌");
+      return;
+    }catch(e){}
+    try{
+      const campo = document.getElementById("iLink");
+      if (campo){
+        abrirPainel();
+        campo.focus(); campo.select();
+        document.execCommand("copy");
         avisar("Link copiado! Cole no WhatsApp 💌");
         return;
-      }catch(e){}
-      try{
-        const campo = document.getElementById("iLink");
-        if (campo){
-          abrirPainel();
-          campo.focus(); campo.select();
-          document.execCommand("copy");
-          avisar("Link copiado! Cole no WhatsApp 💌");
-          return;
-        }
-      }catch(e){}
-      // 3) WhatsApp direto
-      window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank");
-    });
+      }
+    }catch(e){}
+    // 3) WhatsApp direto
+    window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank");
+  }
+
+  const btnCompartilharLink = document.getElementById("btnCompartilharLink");
+  if (btnCompartilharLink){
+    btnCompartilharLink.addEventListener("click", (e) => { e.stopPropagation(); compartilharLink(); });
+  }
+  const btnCompartilharInicio = document.getElementById("btnCompartilharInicio");
+  if (btnCompartilharInicio){
+    btnCompartilharInicio.addEventListener("click", (e) => { e.stopPropagation(); compartilharLink(); });
   }
 
   // botões de compartilhar (painel)
