@@ -12,7 +12,7 @@
 <link rel="icon" href="icone-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Nosso Amor ❤️</title>
+<title>Pablo &amp; Elane ❤️</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -667,7 +667,7 @@
 <section id="inicio">
   <div class="caixa">
     <div class="coracao-grande">❤️</div>
-    <h1>Nosso Amor</h1>
+    <h1>Pablo &amp; Elane</h1>
     <p>Um cantinho só nosso, contando cada segundo desde o início</p>
     <button class="btn-entrar" id="btnEntrar">Entrar ❤️</button>
     <div class="abertura-acoes">
@@ -680,7 +680,7 @@
 <main id="app">
   <header class="topo">
     <p class="desde" id="desdeRotulo">Desde 16 de março de 2025</p>
-    <h2 id="tituloCasal">Nosso Amor</h2>
+    <h2 id="tituloCasal">Pablo &amp; Elane</h2>
     <p class="sub" id="subtitulo">Juntos há</p>
     <div class="traco"></div>
   </header>
@@ -728,7 +728,6 @@
   </section>
 
   <div class="rodape">
-    <button class="btn-suave" id="btnConfigurar">✎ Personalizar</button>
     <button class="btn-suave" id="btnCoracoes">💖 Mais corações</button>
     <button class="btn-suave destaque-link" id="btnCompartilharLink">🔗 Compartilhar</button>
   </div>
@@ -737,10 +736,10 @@
 <!-- PAINEL -->
 <div id="avisoSalvo" role="status" aria-live="polite"></div>
 
-<div id="painel" role="dialog" aria-modal="true" aria-label="Personalizar">
+<div id="painel" role="dialog" aria-modal="true" aria-label="Ajustes">
   <div class="carta">
     <button class="fechar" id="btnFechar" aria-label="Fechar">✕</button>
-    <h3>Personalizar</h3>
+    <h3>Ajustes</h3>
     <p class="desc">Tudo fica salvo neste aparelho (navegador). Nada é enviado para a internet.</p>
 
     <div class="campo">
@@ -835,17 +834,17 @@
 
   const PADRAO = {
     nome: "Nosso Amor",
-    casal: "Nosso Amor",
+    casal: "Pablo & Elane",
     desde: "2025-03-16T00:00",
     mensagem: "Cada segundo ao seu lado é o meu lugar favorito no mundo.\nObrigado por existir e por escolher caminhar comigo. ❤️",
     assinatura: "Com amor, para sempre seu",
     spotify: "3EL9IRDqB9GRf8JSacc35v",
-    foto1: "",
-    foto2: "",
-    foto1Leve: "",
-    foto2Leve: "",
-    nome1: "",
-    nome2: "",
+    foto1: "https://mefhqkjrszvrjztqdlqe.supabase.co/storage/v1/object/public/fotos/amor/pablo-elane-1.jpg",
+    foto2: "https://mefhqkjrszvrjztqdlqe.supabase.co/storage/v1/object/public/fotos/amor/pablo-elane-2.jpg",
+    foto1Leve: "https://mefhqkjrszvrjztqdlqe.supabase.co/storage/v1/object/public/fotos/amor/pablo-elane-1.jpg",
+    foto2Leve: "https://mefhqkjrszvrjztqdlqe.supabase.co/storage/v1/object/public/fotos/amor/pablo-elane-2.jpg",
+    nome1: "Elane",
+    nome2: "Pablo",
     linkTitulo: "Uma surpresa pra você ❤️",
     linkTexto: "Toque no botão abaixo para abrir o nosso cantinho",
     entrou: false
@@ -1291,7 +1290,8 @@
   }
   function fecharPainel(){ painel.classList.remove("aberto"); }
 
-  document.getElementById("btnConfigurar").addEventListener("click", abrirPainel);
+  const btnConfigurar = document.getElementById("btnConfigurar");
+  if (btnConfigurar) btnConfigurar.addEventListener("click", abrirPainel);
   document.getElementById("btnFechar").addEventListener("click", fecharPainel);
   painel.addEventListener("click", (e) => { if (e.target === painel) fecharPainel(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharPainel(); });
