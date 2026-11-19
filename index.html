@@ -538,6 +538,29 @@
     background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;cursor:pointer;
   }
 
+  /* aviso flutuante */
+  #avisoSalvo{
+    position:fixed;
+    left:50%;
+    bottom:calc(22px + env(safe-area-inset-bottom));
+    transform:translate(-50%, 20px);
+    z-index:80;
+    background:linear-gradient(135deg,#ff3d70,#ff7fa4);
+    color:#fff;
+    font-size:13px;
+    font-weight:600;
+    padding:11px 20px;
+    border-radius:999px;
+    box-shadow:0 12px 30px rgba(255,61,112,.45);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    max-width:88vw;
+    text-align:center;
+  }
+  #avisoSalvo.mostra{opacity:1; transform:translate(-50%,0)}
+  #avisoSalvo.erro{background:linear-gradient(135deg,#c62828,#e5533d); box-shadow:0 12px 30px rgba(198,40,40,.45)}
+
   /* coração de clique */
   .coracao-clique{
     position:fixed;
@@ -624,6 +647,8 @@
 </main>
 
 <!-- PAINEL -->
+<div id="avisoSalvo" role="status" aria-live="polite"></div>
+
 <div id="painel" role="dialog" aria-modal="true" aria-label="Personalizar">
   <div class="carta">
     <button class="fechar" id="btnFechar" aria-label="Fechar">✕</button>
@@ -712,17 +737,41 @@
 
   /* ---------------- armazenamento ---------------- */
   function carregar(){
+    let dados = null;
     try{
       const bruto = localStorage.getItem(CHAVE);
-      if (!bruto) return { ...PADRAO };
-      const dados = JSON.parse(bruto);
-      return { ...PADRAO, ...dados };
-    }catch(e){
-      return { ...PADRAO };
+      if (bruto) dados = JSON.parse(bruto);
+    }catch(e){ dados = null; }
+    if (!dados || typeof dados !== "object") dados = {};
+    const cfgFinal = { ...PADRAO, ...dados };
+    // só aceita data válida; senão volta ao padrão
+    if (!/^\d{4}-\d{2}-\d{2}/.test(String(cfgFinal.desde || "")) ||
+        isNaN(new Date(cfgFinal.desde).getTime())){
+      cfgFinal.desde = PADRAO.desde;
     }
+    return cfgFinal;
   }
+  let timerAviso = null;
+  function avisar(texto, erro){
+    const el = document.getElementById("avisoSalvo");
+    if (!el) return;
+    el.textContent = texto;
+    el.classList.toggle("erro", !!erro);
+    el.classList.add("mostra");
+    clearTimeout(timerAviso);
+    timerAviso = setTimeout(() => el.classList.remove("mostra"), erro ? 6000 : 2400);
+  }
+
   function salvar(){
-    try{ localStorage.setItem(CHAVE, JSON.stringify(cfg)); return true; }catch(e){ return false; }
+    const dados = JSON.stringify(cfg);
+    try{
+      localStorage.setItem(CHAVE, dados);
+      // confere se realmente gravou
+      if (localStorage.getItem(CHAVE) === dados) return true;
+    }catch(e){}
+    // reserva: cópia na sessão (dura enquanto a aba estiver aberta)
+    try{ sessionStorage.setItem(CHAVE, dados); }catch(e){}
+    return false;
   }
 
   /* ---------------- chuva de corações ---------------- */
@@ -1010,11 +1059,21 @@
   const inicio = document.getElementById("inicio");
   const app = document.getElementById("app");
 
+  let armazenamentoOk = true;
+  try{
+    localStorage.setItem("__teste__", "1");
+    localStorage.removeItem("__teste__");
+  }catch(e){ armazenamentoOk = false; }
+
   function abrirApp(){
     inicio.classList.add("sair");
     app.classList.add("visivel");
-    cfg.entrou = true; salvar();
+    cfg.entrou = true;
+    const okEntrar = salvar();
     encherChuva(14);
+    if (!okEntrar && !armazenamentoOk){
+      setTimeout(() => avisar("Este navegador está bloqueando o salvamento (modo anônimo?). Suas mudanças podem se perder ao atualizar.", true), 900);
+    }
     aplicarTextos();
     pintar();
   }
@@ -1027,6 +1086,14 @@
   const iMsg = document.getElementById("iMsg");
   const iAss = document.getElementById("iAss");
   const iSpotify = document.getElementById("iSpotify");
+
+  // se o aparelho bloquear o localStorage, ao menos mantém nesta aba
+  if (!localStorage.getItem(CHAVE)){
+    try{
+      const rascunho = sessionStorage.getItem(CHAVE);
+      if (rascunho){ cfg = { ...cfg, ...JSON.parse(rascunho) }; }
+    }catch(e){}
+  }
 
   function abrirPainel(){
     iNome.value = cfg.nome || "";
@@ -1046,28 +1113,43 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharPainel(); });
 
   document.getElementById("btnSalvar").addEventListener("click", () => {
+    if (iData.value && isNaN(new Date(iData.value).getTime())){
+      avisar("A data não está válida. Confira o dia, o mês e o ano.", true);
+      return;
+    }
     cfg.nome = iNome.value.trim() || PADRAO.nome;
-    cfg.desde = iData.value || PADRAO.desde;
+    cfg.desde = iData.value || cfg.desde || PADRAO.desde;
     cfg.mensagem = iMsg.value;
     cfg.assinatura = iAss.value.trim();
     cfg.spotify = iSpotify.value.trim();
     cfg.nome1 = document.getElementById("iNome1").value.trim();
     cfg.nome2 = document.getElementById("iNome2").value.trim();
-    salvar();
+    const ok = salvar();
     pintarFotos();
     aplicarTextos();
     pintar();
-    fecharPainel();
-    encherChuva(10);
+    if (ok){
+      fecharPainel();
+      encherChuva(10);
+      avisar("Salvo ✓");
+    } else {
+      avisar("Não consegui salvar neste navegador. Saia do modo anônimo/privado ou abra o link no navegador normal.", true);
+    }
   });
 
   document.getElementById("btnResetar").addEventListener("click", () => {
     if (!confirm("Restaurar tudo para o padrão? Suas informações serão apagadas.")) return;
     cfg = { ...PADRAO, entrou: cfg.entrou };
-    salvar();
+    if (!salvar()){
+      avisar("Não consegui salvar neste navegador. Saia do modo anônimo/privado.", true);
+      return;
+    }
     abrirPainel();
+    pintarFotos();
+    sincronizarMinis();
     aplicarTextos();
     pintar();
+    avisar("Restaurado para o padrão");
   });
 
   /* ---------------- corações extras + clique ---------------- */
