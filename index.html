@@ -837,7 +837,7 @@
   };
 
   let cfg = carregar();
-  let veioDoLink = false;
+  let veioDoLink = false;   // a página foi aberta por um link compartilhado
 
   /* ---------------- armazenamento ---------------- */
   function carregar(){
@@ -867,6 +867,8 @@
   }
 
   function salvar(){
+    // quem abriu pelo link não grava por cima do que já existe no aparelho
+    if (veioDoLink) return true;
     const dados = JSON.stringify(cfg);
     try{
       localStorage.setItem(CHAVE, dados);
@@ -1173,7 +1175,7 @@
     inicio.classList.add("sair");
     app.classList.add("visivel");
     cfg.entrou = true;
-    const okEntrar = veioDoLink ? true : salvar();
+    const okEntrar = salvar();
     encherChuva(14);
     if (!okEntrar && !armazenamentoOk){
       setTimeout(() => avisar("Este navegador está bloqueando o salvamento (modo anônimo?). Suas mudanças podem se perder ao atualizar.", true), 900);
@@ -1342,6 +1344,8 @@
       if (!/^\d{4}-\d{2}-\d{2}/.test(String(cfg.desde)) || isNaN(new Date(cfg.desde).getTime())){
         cfg.desde = PADRAO.desde;
       }
+      // guarda uma cópia só desta visita (não mexe no que a pessoa já tinha salvo)
+      try{ sessionStorage.setItem(CHAVE + "-link", JSON.stringify(cfg)); }catch(e){}
       return true;
     }catch(e){ return false; }
   }
@@ -1375,6 +1379,19 @@
   });
 
   /* ---------------- início ---------------- */
+  // se abrir de novo com um link diferente (ou tocar no link já com a página aberta)
+  window.addEventListener("hashchange", () => {
+    if (lerDadosDoLink()){
+      veioDoLink = true;
+      aplicarAbertura();
+      aplicarTextos();
+      pintarFotos();
+      pintar();
+      encherChuva(14);
+      avisar("Link carregado ✓");
+    }
+  });
+
   veioDoLink = lerDadosDoLink();
   if (veioDoLink){
     // quem recebeu o link vê tudo já preenchido; não sobrescreve o que está salvo no aparelho
