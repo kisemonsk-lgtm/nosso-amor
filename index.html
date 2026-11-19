@@ -1138,21 +1138,69 @@
       return;
     }
     try{
+      avisar("Enviando a foto...");
+      // 1) sobe a foto para a nuvem (link curto, funciona em qualquer aparelho)
+      let urlNuvem = "";
+      try{ urlNuvem = await subirFotoNuvem(arquivo); }catch(e){ urlNuvem = ""; }
+      // 2) versão local (funciona mesmo sem nuvem)
       const dataUrl = await reduzirImagem(arquivo, 640, 0.8, true);
-      // versão pequena (só para o link compartilhado ficar curto)
       let leve = "";
       try{ leve = await reduzirImagem(arquivo, 150, 0.4, true); }catch(e){ leve = ""; }
-      if (n === 1){ cfg.foto1 = dataUrl; cfg.foto1Leve = leve; }
-      else { cfg.foto2 = dataUrl; cfg.foto2Leve = leve; }
-      if (!salvar()){
-        alert("A foto é grande demais para este navegador. Tente uma imagem menor.");
-        if (n === 1){ cfg.foto1 = ""; cfg.foto1Leve = ""; } else { cfg.foto2 = ""; cfg.foto2Leve = ""; }
+
+      if (n === 1){
+        cfg.foto1 = urlNuvem || dataUrl;
+        cfg.foto1Leve = urlNuvem || leve;
+      } else {
+        cfg.foto2 = urlNuvem || dataUrl;
+        cfg.foto2Leve = urlNuvem || leve;
       }
+      salvar();
       pintarFotos();
       sincronizarMinis();
+      avisar(urlNuvem ? "Foto salva na nuvem ✓" : "Foto salva só neste aparelho");
     }catch(e){
       alert("Não foi possível usar essa imagem. Tente outra.");
     }
+  }
+
+  /* ---------------- nuvem das fotos (Supabase) ---------------- */
+  const NUVEM_FOTOS = {
+    url: "https://mefhqkjrszvrjztqdlqe.supabase.co",
+    chave: "sb_publishable_Y_WmSLQXSke0v2O9P8swgw_9uS5tt_P",
+    bucket: "fotos",
+    pasta: "amor"
+  };
+
+  function idAleatorio(){
+    try{
+      const a = new Uint8Array(8);
+      crypto.getRandomValues(a);
+      return Array.from(a).map(b => b.toString(16).padStart(2, "0")).join("");
+    }catch(e){
+      return Math.random().toString(36).slice(2, 12);
+    }
+  }
+
+  async function subirFotoNuvem(arquivo){
+    const jpg = await reduzirImagem(arquivo, 720, 0.8, true);
+    const bin = atob(jpg.split(",")[1]);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const nome = NUVEM_FOTOS.pasta + "/" + Date.now() + "-" + idAleatorio() + ".jpg";
+    const destino = NUVEM_FOTOS.url + "/storage/v1/object/" + NUVEM_FOTOS.bucket + "/" + nome;
+    const r = await fetch(destino, {
+      method: "POST",
+      headers: {
+        apikey: NUVEM_FOTOS.chave,
+        Authorization: "Bearer " + NUVEM_FOTOS.chave,
+        "Content-Type": "image/jpeg",
+        "x-upsert": "true",
+        "cache-control": "31536000"
+      },
+      body: bytes
+    });
+    if (!r.ok) throw new Error("Falha ao enviar a foto");
+    return NUVEM_FOTOS.url + "/storage/v1/object/public/" + NUVEM_FOTOS.bucket + "/" + nome;
   }
 
   function sincronizarMinis(){
@@ -1179,16 +1227,13 @@
       escolherFoto(n, arq);
       e.target.value = "";
     });
-    document.getElementById("remover" + n).addEventListener("click", (e) => {
+    const apagar = (e) => {
       e.stopPropagation();
       if (n === 1){ cfg.foto1 = ""; cfg.foto1Leve = ""; } else { cfg.foto2 = ""; cfg.foto2Leve = ""; }
       salvar(); pintarFotos(); sincronizarMinis();
-    });
-    document.getElementById("miniX" + n).addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (n === 1){ cfg.foto1 = ""; cfg.foto1Leve = ""; } else { cfg.foto2 = ""; cfg.foto2Leve = ""; }
-      salvar(); pintarFotos(); sincronizarMinis();
-    });
+    };
+    document.getElementById("remover" + n).addEventListener("click", apagar);
+    document.getElementById("miniX" + n).addEventListener("click", apagar);
   });
 
   /* ---------------- tela inicial ---------------- */
@@ -1320,12 +1365,20 @@
       s: cfg.spotify || "",
       n1: cfg.nome1 || "",
       n2: cfg.nome2 || "",
-      f1: (curto ? (cfg.foto1Leve || cfg.foto1) : cfg.foto1) || "",
-      f2: (curto ? (cfg.foto2Leve || cfg.foto2) : cfg.foto2) || "",
+      f1: escolherFotoLink(cfg.foto1, cfg.foto1Leve, curto),
+      f2: escolherFotoLink(cfg.foto2, cfg.foto2Leve, curto),
       t: cfg.linkTitulo || PADRAO.linkTitulo,
       x: cfg.linkTexto || PADRAO.linkTexto
     };
     return d;
+  }
+
+  // foto hospedada na nuvem é só um endereço: leve e igual em qualquer aparelho
+  function escolherFotoLink(completa, leve, curto){
+    const f = completa || "";
+    if (/^https?:/i.test(f)) return f;
+    if (curto) return (leve && /^https?:/i.test(leve)) ? leve : "";
+    return f;
   }
 
   const NUVEM = "https://tinyurl.com/api-create.php?url=";
